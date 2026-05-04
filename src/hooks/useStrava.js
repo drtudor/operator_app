@@ -12,10 +12,8 @@ export const MILESTONES = [
   { km: 420, label: '10 marathons' },
   { km: 500, label: 'Edinburgh to Bristol' },
   { km: 650, label: 'Edinburgh to London' },
-  { km: 1000, label: '1,000km total' },
+  { km: 1000, label: '1,000km in a year' },
   { km: 1407, label: "Land's End to John o'Groats" },
-  { km: 2000, label: 'Edinburgh to Rome' },
-  { km: 4200, label: '100 marathons' },
 ]
 
 export function getMilestoneInfo(totalKm) {
@@ -54,25 +52,51 @@ export function useStrava() {
     setLoading(true)
     setError(null)
     try {
-      const athleteRes = await fetch('https://www.strava.com/api/v3/athlete', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-      if (!athleteRes.ok) throw new Error('Failed to fetch athlete')
-      const athlete = await athleteRes.json()
+      // Fetch all runs since Jan 1 of this year
+      const startOfYear = Math.floor(new Date(new Date().getFullYear(), 0, 1).getTime() / 1000)
+      let page = 1
+      let allActivities = []
 
-      const statsRes = await fetch(`https://www.strava.com/api/v3/athletes/${athlete.id}/stats`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-      if (!statsRes.ok) throw new Error('Failed to fetch stats')
-      const data = await statsRes.json()
+      while (true) {
+        const res = await fetch(
+          `https://www.strava.com/api/v3/athlete/activities?after=${startOfYear}&per_page=200&page=${page}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        )
+        if (!res.ok) throw new Error(`Strava API error: ${res.status}`)
+        const batch = await res.json()
+        if (!batch.length) break
+        allActivities = [...allActivities, ...batch]
+        if (batch.length < 200) break
+        page++
+      }
+
+      const runs = allActivities.filter(a => a.type === 'Run' || a.sport_type === 'Run')
+
+      const ytdKm = Math.round(runs.reduce((sum, a) => sum + a.distance, 0) / 100) / 10
+
+      const recentCutoff = Date.now() - 28 * 24 * 60 * 60 * 1000
+      const recentKm = Math.round(
+        runs
+          .filter(a => new Date(a.start_date).getTime() > recentCutoff)
+          .reduce((sum, a) => sum + a.distance, 0) / 100
+      ) / 10
+
+      const lastRun = runs[0]
+        ? {
+            name: runs[0].name,
+            date: runs[0].start_date,
+            km: Math.round(runs[0].distance / 100) / 10,
+          }
+        : null
 
       const stravaStats = {
-        totalKm: Math.round((data.all_run_totals?.distance || 0) / 100) / 10,
-        ytdKm: Math.round((data.ytd_run_totals?.distance || 0) / 100) / 10,
-        recentKm: Math.round((data.recent_run_totals?.distance || 0) / 100) / 10,
-        athleteName: athlete.firstname,
+        ytdKm,
+        recentKm,
+        runCount: runs.length,
+        lastRun,
         lastFetched: new Date().toISOString(),
       }
+
       localStorage.setItem('strava_stats', JSON.stringify(stravaStats))
       setStats(stravaStats)
     } catch (e) {
@@ -97,14 +121,12 @@ export function useStrava() {
     await fetchStats(access_token)
   }, [fetchStats])
 
-  // On mount: check for existing tokens or OAuth callback code
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
     const scope = params.get('scope')
 
     if (code && scope?.includes('activity:read')) {
-      // Clean the URL first
       window.history.replaceState({}, '', window.location.pathname)
       if (!hasSecret) {
         setError('Strava client secret not configured — deploy via GitHub Actions to enable.')
@@ -134,7 +156,6 @@ export function useStrava() {
       if (cached) setStats(cached)
       if (hasSecret) {
         refreshAndFetch(tokens).catch(e => {
-          // If refresh fails (e.g. revoked), disconnect
           if (e.message.includes('401') || e.message.includes('token')) {
             localStorage.removeItem('strava_tokens')
             localStorage.removeItem('strava_stats')

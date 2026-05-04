@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { getMilestoneInfo, MILESTONES } from '../hooks/useStrava'
 
 export default function StravaPanel({ strava }) {
@@ -10,35 +11,34 @@ export default function StravaPanel({ strava }) {
           <div className="strava-logo-icon">S</div>
           <div className="strava-logo-text">Strava</div>
         </div>
-        <div className="label" style={{ marginBottom: 6 }}>Running Total</div>
+        <div className="label" style={{ marginBottom: 6 }}>Running — {new Date().getFullYear()}</div>
         {!hasSecret && (
           <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5 }}>
             Deploy via GitHub Actions to enable live Strava data
           </div>
         )}
         <div style={{ fontFamily: 'var(--font-m)', fontSize: 12, color: 'var(--text-dim)', marginBottom: 10, lineHeight: 1.5 }}>
-          Connect Strava to track your total distance run and see fun milestone comparisons.
+          Connect Strava to track your distance run this year and see milestone comparisons.
         </div>
         {error && (
           <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'rgba(220,100,100,.8)', marginBottom: 8 }}>
             {error}
           </div>
         )}
-        <button className="btn-strava" onClick={connect}>
-          Connect Strava
-        </button>
+        <button className="btn-strava" onClick={connect}>Connect Strava</button>
       </div>
     )
   }
 
-  const milestone = stats ? getMilestoneInfo(stats.totalKm) : null
+  const milestone = stats ? getMilestoneInfo(stats.ytdKm) : null
+  const year = new Date().getFullYear()
 
   return (
     <div className="strava-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div className="strava-logo">
           <div className="strava-logo-icon">S</div>
-          <div className="strava-logo-text">Strava{stats?.athleteName ? ` — ${stats.athleteName}` : ''}</div>
+          <div className="strava-logo-text">Strava</div>
         </div>
         <button className="btn-strava disconnect" onClick={disconnect}>Disconnect</button>
       </div>
@@ -58,9 +58,12 @@ export default function StravaPanel({ strava }) {
       {stats && (
         <>
           <div style={{ marginTop: 8 }}>
-            <div className="label">All-time distance run</div>
+            <div className="label">{year} distance run</div>
             <div className="strava-total-km">
-              {stats.totalKm.toLocaleString()}<span> km</span>
+              {stats.ytdKm.toLocaleString()}<span> km</span>
+            </div>
+            <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+              {stats.runCount} run{stats.runCount !== 1 ? 's' : ''} this year
             </div>
           </div>
 
@@ -80,35 +83,46 @@ export default function StravaPanel({ strava }) {
                 <div
                   className="prog-fill"
                   style={{
-                    width: `${Math.min(100, Math.round((stats.totalKm / milestone.next.km) * 100))}%`,
+                    width: `${Math.min(100, Math.round((stats.ytdKm / milestone.next.km) * 100))}%`,
                     background: '#fc4c02',
                   }}
                 />
               </div>
               <div style={{ fontFamily: 'var(--font-m)', fontSize: 9, color: 'var(--text-muted)', marginTop: 4 }}>
-                {(milestone.next.km - stats.totalKm).toFixed(1)} km to go ·{' '}
-                {Math.round((stats.totalKm / milestone.next.km) * 100)}%
+                {(milestone.next.km - stats.ytdKm).toFixed(1)} km to go ·{' '}
+                {Math.round((stats.ytdKm / milestone.next.km) * 100)}%
               </div>
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 10 }}>
+          {stats.lastRun && (
+            <div style={{ marginTop: 10, padding: '8px 10px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+              <div className="label" style={{ marginBottom: 3 }}>Last run</div>
+              <div style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--text)' }}>{stats.lastRun.name}</div>
+              <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-dim)', marginTop: 2 }}>
+                {stats.lastRun.km} km ·{' '}
+                {new Date(stats.lastRun.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: 10 }}>
-              <div className="label">This year</div>
+              <div className="label">Last 4 weeks</div>
               <div style={{ fontFamily: 'var(--font-m)', fontSize: 16, color: 'var(--amber)' }}>
-                {stats.ytdKm} <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>km</span>
+                {stats.recentKm} <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>km</span>
               </div>
             </div>
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: 10 }}>
-              <div className="label">Recent (4 wk)</div>
+              <div className="label">Per week avg</div>
               <div style={{ fontFamily: 'var(--font-m)', fontSize: 16, color: 'var(--amber)' }}>
-                {stats.recentKm} <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>km</span>
+                {(stats.recentKm / 4).toFixed(1)} <span style={{ fontSize: 10, color: 'var(--text-dim)' }}>km</span>
               </div>
             </div>
           </div>
 
           <div style={{ fontFamily: 'var(--font-m)', fontSize: 9, color: 'var(--text-muted)', marginTop: 8 }}>
-            Updated {stats.lastFetched ? new Date(stats.lastFetched).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+            Updated {new Date(stats.lastFetched).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
             {' · '}
             <button
               onClick={refresh}
@@ -121,12 +135,12 @@ export default function StravaPanel({ strava }) {
         </>
       )}
 
-      <MilestoneList totalKm={stats?.totalKm || 0} />
+      <MilestoneList totalKm={stats?.ytdKm || 0} year={year} />
     </div>
   )
 }
 
-function MilestoneList({ totalKm }) {
+function MilestoneList({ totalKm, year }) {
   const [expanded, setExpanded] = useState(false)
 
   return (
@@ -135,7 +149,7 @@ function MilestoneList({ totalKm }) {
         onClick={() => setExpanded(e => !e)}
         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontFamily: 'var(--font-m)', fontSize: 9, cursor: 'pointer', letterSpacing: '.1em', textTransform: 'uppercase', padding: 0 }}
       >
-        {expanded ? '▲' : '▼'} All milestones
+        {expanded ? '▲' : '▼'} {year} milestones
       </button>
       {expanded && (
         <div style={{ marginTop: 6 }}>
@@ -155,6 +169,3 @@ function MilestoneList({ totalKm }) {
     </div>
   )
 }
-
-// useState needs to be imported — add it here
-import { useState } from 'react'
