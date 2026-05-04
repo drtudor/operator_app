@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { getTodayPlanDay, todayISO, fmtTime, parseTime, PLAN } from '../data/plan'
+import BadgesPanel from './BadgesPanel'
 
 function drawChart(canvas, weights) {
   if (!canvas) return
@@ -65,6 +66,10 @@ export default function Stats({ state, actions, isActive }) {
   const [runDist, setRunDist] = useState('2k')
   const [runTime, setRunTime] = useState('')
   const [startInput, setStartInput] = useState(state.startDate)
+  const [ruckWeight, setRuckWeight] = useState('')
+  const [ruckDist, setRuckDist] = useState('')
+  const [ruckDate, setRuckDate] = useState(todayISO())
+  const [ruckNotes, setRuckNotes] = useState('')
 
   useEffect(() => {
     if (isActive) drawChart(canvasRef.current, state.weights)
@@ -94,7 +99,17 @@ export default function Stats({ state, actions, isActive }) {
     actions.updateStart(startInput)
   }
 
+  const handleLogRuck = () => {
+    if (!ruckWeight) return
+    actions.logRuck(ruckWeight, ruckDist, ruckDate, ruckNotes)
+    setRuckWeight('')
+    setRuckDist('')
+    setRuckNotes('')
+  }
+
   const { pbs, weights } = state
+  const ruckLogs = state.ruckLogs || []
+  const latestRuck = ruckLogs.length ? ruckLogs[ruckLogs.length - 1] : null
 
   return (
     <div>
@@ -164,6 +179,45 @@ export default function Stats({ state, actions, isActive }) {
         </div>
       </div>
 
+      <h2 style={{ marginTop: 14 }}>Ruck Log</h2>
+      <div className="card">
+        <div className="input-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+          <div className="ig">
+            <div className="label">Weight (kg)</div>
+            <input className="if" type="number" step="0.5" placeholder="20" value={ruckWeight} onChange={e => setRuckWeight(e.target.value)} />
+          </div>
+          <div className="ig">
+            <div className="label">Distance (mi)</div>
+            <input className="if" type="number" step="0.1" placeholder="4" value={ruckDist} onChange={e => setRuckDist(e.target.value)} />
+          </div>
+          <div className="ig">
+            <div className="label">Date</div>
+            <input className="if" type="date" value={ruckDate} onChange={e => setRuckDate(e.target.value)} />
+          </div>
+        </div>
+        <input className="if" type="text" placeholder="Notes (optional)" value={ruckNotes} onChange={e => setRuckNotes(e.target.value)} style={{ marginBottom: 8 }} />
+        <button className="btn-log" style={{ gridColumn: '1/-1' }} onClick={handleLogRuck}>LOG RUCK</button>
+        {latestRuck && (
+          <div style={{ marginTop: 10 }}>
+            <div className="label" style={{ marginBottom: 6 }}>Recent ruck sessions</div>
+            <div className="log-list">
+              {[...ruckLogs].reverse().slice(0, 6).map((r, i) => (
+                <div key={i} className="log-entry">
+                  <span className="log-date">{r.date}</span>
+                  <span style={{ color: 'var(--ruck)', fontFamily: 'var(--font-m)', fontSize: 12 }}>
+                    {r.weight}kg · {r.distance}mi{r.notes ? ` · ${r.notes}` : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-m)', fontSize: 11 }}>
+              <span style={{ color: 'var(--text-dim)' }}>Current ruck weight</span>
+              <span style={{ color: 'var(--ruck)' }}>{latestRuck.weight}kg</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       <h2 style={{ marginTop: 14 }}>Farmers Carry</h2>
       <div className="card">
         <div className="run-row">
@@ -210,6 +264,8 @@ export default function Stats({ state, actions, isActive }) {
         </div>
       </div>
 
+      <div style={{ height: 14 }} />
+      <BadgesPanel state={state} />
       <div style={{ height: 8 }} />
     </div>
   )

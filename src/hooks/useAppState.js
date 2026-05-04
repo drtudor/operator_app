@@ -9,6 +9,7 @@ const DFLT = {
   weights: [],
   runs: [],
   pbs: {},
+  ruckLogs: [],
   workoutHistory: [
     {
       date: '2026-05-03',
@@ -112,7 +113,7 @@ export function useAppState() {
       saveState({ ...state, startDate: date, skippedDays: 0, missedDates: [] })
     },
 
-    saveLog(planDayNum, exercises) {
+    saveLog(planDayNum, exercises, notes) {
       const d = PLAN[planDayNum - 1]
       if (!d) return
       const history = state.workoutHistory || []
@@ -120,7 +121,18 @@ export function useAppState() {
         ...state,
         workoutHistory: [
           ...history,
-          { date: todayISO(), planDay: planDayNum, type: d.session.type, exercises },
+          { date: todayISO(), planDay: planDayNum, type: d.session.type, exercises, notes: notes || '' },
+        ],
+      })
+    },
+
+    logRuck(weight, distance, date, notes) {
+      if (!weight) return
+      saveState({
+        ...state,
+        ruckLogs: [
+          ...(state.ruckLogs || []),
+          { date: date || todayISO(), weight: parseFloat(weight), distance: parseFloat(distance) || 0, notes: notes || '' },
         ],
       })
     },

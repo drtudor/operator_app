@@ -239,6 +239,22 @@ export function getInc(name) {
   return 1
 }
 
+export function calculateStreak(state) {
+  const todayDay = getTodayPlanDay(state)
+  let streak = 0
+  for (let d = todayDay; d >= 1; d--) {
+    const planDay = PLAN[d - 1]
+    if (!planDay) break
+    const isRest = planDay.session.type === 'rest' || planDay.session.type === 'deload'
+    if (isRest || state.completed.includes(planDay.dayNum)) {
+      streak++
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
 export function getProgression(ex, ll) {
   if (!ll) return null
   const { mn, mx } = parseRR(ex.reps)

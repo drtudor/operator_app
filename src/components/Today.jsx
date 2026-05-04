@@ -70,6 +70,7 @@ function ExerciseTableWithHistory({ exList, isDeload, state }) {
 
 function LogForm({ exList, planDayNum, state, onSave }) {
   const [show, setShow] = useState(false)
+  const [notes, setNotes] = useState('')
   const [inputs, setInputs] = useState(() => {
     const result = {}
     exList.forEach(ex => {
@@ -95,7 +96,7 @@ function LogForm({ exList, planDayNum, state, onSave }) {
       const s = parseInt(inp.sets)
       if (w && r && s) exercises[ex.name] = { weight: w, reps: r, sets: s }
     })
-    onSave(planDayNum, exercises)
+    onSave(planDayNum, exercises, notes)
     setShow(false)
   }
 
@@ -138,7 +139,18 @@ function LogForm({ exList, planDayNum, state, onSave }) {
                 />
               </div>
             ))}
-            <button className="btn-log" style={{ width: '100%', marginTop: 10 }} onClick={handleSave}>
+            <div style={{ marginTop: 10 }}>
+              <div className="label" style={{ marginBottom: 4 }}>Session notes</div>
+              <textarea
+                className="if"
+                rows={2}
+                placeholder="How did it feel? Any notes..."
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                style={{ resize: 'none', fontFamily: 'var(--font-m)', fontSize: 13, lineHeight: 1.5 }}
+              />
+            </div>
+            <button className="btn-log" style={{ width: '100%', marginTop: 8 }} onClick={handleSave}>
               SAVE SESSION
             </button>
           </div>
@@ -170,7 +182,7 @@ function StravaLabel({ label }) {
   )
 }
 
-export default function Today({ state, actions, viewDay, onViewDay }) {
+export default function Today({ state, actions, viewDay, onViewDay, onComplete }) {
   const planDay = viewDay || getTodayPlanDay(state)
   const d = PLAN[planDay - 1]
   if (!d) return null
@@ -302,7 +314,7 @@ export default function Today({ state, actions, viewDay, onViewDay }) {
             </button>
           ) : s.type !== 'rest' && s.type !== 'deload' ? (
             <>
-              <button className="btn" onClick={actions.markComplete}>
+              <button className="btn" onClick={() => { actions.markComplete(); onComplete?.() }}>
                 MARK SESSION COMPLETE
               </button>
               <button className="btn miss" onClick={actions.missSession}>

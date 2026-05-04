@@ -1,9 +1,10 @@
 import {
   PLAN, MUSCLES, PN, SN, RTN,
   getCurrentDay, getTodayPlanDay, isCompleted, isTodayMissed,
-  getPhaseTotal, getPhaseStart, dayTypeLabel,
+  getPhaseTotal, getPhaseStart, dayTypeLabel, calculateStreak,
 } from '../data/plan'
 import StravaPanel from './StravaPanel'
+import WeeklySummary from './WeeklySummary'
 
 export default function Dashboard({ state, strava, onViewSession }) {
   const cd = getCurrentDay(state)
@@ -30,6 +31,7 @@ export default function Dashboard({ state, strava, onViewSession }) {
 
   const capRuns = PLAN.filter(d => d.phase === 'capacity' && d.session.type === 'run')
   const crDone = capRuns.filter(d => isCompleted(state, d.dayNum)).length
+  const streak = calculateStreak(state)
 
   const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
   const missed = isTodayMissed(state)
@@ -75,6 +77,20 @@ export default function Dashboard({ state, strava, onViewSession }) {
             <div className="prog-fill" style={{ width: `${Math.round(crDone / 24 * 100)}%` }} />
           </div>
         </div>
+        <div className="sc">
+          <div className="label">Streak</div>
+          <div className="sv">{streak}<span className="su">d</span></div>
+          <div style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: streak >= 7 ? 'var(--green)' : 'var(--text-dim)' }}>
+            {streak >= 30 ? 'Month of pain' : streak >= 14 ? 'Fortnight strong' : streak >= 7 ? 'Week warrior' : streak >= 3 ? 'Getting going' : 'Keep it up'}
+          </div>
+        </div>
+        <div className="sc">
+          <div className="label">Sessions</div>
+          <div className="sv">{state.completed.length}<span className="su">/{PLAN.length}</span></div>
+          <div className="prog-bar" style={{ marginTop: 5 }}>
+            <div className="prog-fill" style={{ width: `${Math.round(state.completed.length / PLAN.length * 100)}%` }} />
+          </div>
+        </div>
       </div>
 
       <div className="card">
@@ -102,6 +118,8 @@ export default function Dashboard({ state, strava, onViewSession }) {
           VIEW SESSION DETAILS →
         </button>
       </div>
+
+      <WeeklySummary state={state} />
 
       <StravaPanel strava={strava} />
 
