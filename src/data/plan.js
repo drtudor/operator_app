@@ -1,3 +1,41 @@
+export const NO_GYM_EXERCISES = {
+  upper: [
+    { name: 'Push Ups', sets: 4, reps: 'Max', rest: '90s', note: 'Full range — chest to floor' },
+    { name: 'Wide Push Ups', sets: 3, reps: '15', rest: '60s', note: 'Chest focus' },
+    { name: 'Diamond Push Ups', sets: 3, reps: '12', rest: '60s', note: 'Tricep focus' },
+    { name: 'Pike Push Ups', sets: 3, reps: '12', rest: '60s', note: 'Shoulder focus — hips high' },
+    { name: 'Decline Push Ups', sets: 3, reps: '12', rest: '60s', note: 'Feet on chair or sofa' },
+    { name: 'Tricep Dips', sets: 3, reps: '12', rest: '60s', note: 'Use a chair or sofa edge' },
+    { name: 'Superman Hold', sets: 3, reps: '15', rest: '45s', note: 'Squeeze at top, lower back + glutes' },
+  ],
+  lower: [
+    { name: 'Bodyweight Squats', sets: 4, reps: '20', rest: '60s', note: 'Slow down, pause at bottom' },
+    { name: 'Bulgarian Split Squats', sets: 3, reps: '12/leg', rest: '90s', note: 'Rear foot on chair — quad dominant' },
+    { name: 'Glute Bridges', sets: 4, reps: '20', rest: '45s', note: 'Drive through heels, pause at top' },
+    { name: 'Walking Lunges', sets: 3, reps: '15/leg', rest: '60s' },
+    { name: 'Single Leg RDL', sets: 3, reps: '12/leg', rest: '60s', note: 'Slow and controlled, hamstring stretch' },
+    { name: 'Wall Sit', sets: 3, reps: '60s', rest: '60s', note: 'Thighs parallel to floor' },
+    { name: 'Calf Raises', sets: 3, reps: '25', rest: '45s', note: 'Single leg for more challenge' },
+  ],
+  se_upper: [
+    { name: 'Push Ups', sets: 5, reps: '20', rest: '45s' },
+    { name: 'Wide Push Ups', sets: 4, reps: '20', rest: '45s', note: 'Chest focus' },
+    { name: 'Diamond Push Ups', sets: 4, reps: '15', rest: '45s', note: 'Tricep focus' },
+    { name: 'Pike Push Ups', sets: 3, reps: '15', rest: '45s', note: 'Shoulder focus' },
+    { name: 'Tricep Dips', sets: 3, reps: '15', rest: '45s', note: 'Chair or sofa edge' },
+    { name: 'Superman Hold', sets: 4, reps: '20', rest: '30s' },
+    { name: 'Plank', sets: 3, reps: '60s', rest: '45s' },
+  ],
+  se_lower: [
+    { name: 'Bodyweight Squats', sets: 4, reps: '25', rest: '45s', note: 'Continuous pace' },
+    { name: 'Bulgarian Split Squats', sets: 4, reps: '15/leg', rest: '45s', note: 'Rear foot elevated' },
+    { name: 'Glute Bridges', sets: 4, reps: '25', rest: '30s', note: 'Pause at top' },
+    { name: 'Walking Lunges', sets: 4, reps: '20/leg', rest: '45s' },
+    { name: 'Single Leg RDL', sets: 3, reps: '15/leg', rest: '45s' },
+    { name: 'Wall Sit', sets: 3, reps: '90s', rest: '45s' },
+  ],
+}
+
 export const EXERCISES = {
   upper: [
     { name: 'Pull Ups', sets: 4, reps: '6-10', rest: '90s', note: 'Assisted — reduce assist as strength builds' },

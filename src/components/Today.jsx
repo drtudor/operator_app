@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  PLAN, EXERCISES, SN, RTN, PN,
+  PLAN, EXERCISES, NO_GYM_EXERCISES, SN, RTN, PN,
   getTodayPlanDay, isTodayMissed, isCompleted,
   getLastLog, getProgression, fmtWt,
 } from '../data/plan'
@@ -68,7 +68,7 @@ function ExerciseTableWithHistory({ exList, isDeload, state }) {
   )
 }
 
-function LogForm({ exList, planDayNum, state, onSave }) {
+function LogForm({ exList, planDayNum, state, noGym, onSave }) {
   const [show, setShow] = useState(false)
   const [notes, setNotes] = useState('')
   const [inputs, setInputs] = useState(() => {
@@ -96,7 +96,8 @@ function LogForm({ exList, planDayNum, state, onSave }) {
       const s = parseInt(inp.sets)
       if (w && r && s) exercises[ex.name] = { weight: w, reps: r, sets: s }
     })
-    onSave(planDayNum, exercises, notes)
+    const fullNotes = noGym ? `[Home workout]${notes ? ' — ' + notes : ''}` : notes
+    onSave(planDayNum, exercises, fullNotes)
     setShow(false)
   }
 
@@ -182,7 +183,11 @@ function StravaLabel({ label }) {
   )
 }
 
+const GYM_TYPES = ['upper', 'lower', 'se_upper', 'se_lower']
+
 export default function Today({ state, actions, viewDay, onViewDay, onComplete }) {
+  const [noGym, setNoGym] = useState(false)
+
   const planDay = viewDay || getTodayPlanDay(state)
   const d = PLAN[planDay - 1]
   if (!d) return null
@@ -191,7 +196,8 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
   const done = isCompleted(state, d.dayNum)
   const isToday = !viewDay || viewDay === getTodayPlanDay(state)
   const missed = isToday && isTodayMissed(state)
-  const exList = EXERCISES[s.type]
+  const hasNoGymOption = GYM_TYPES.includes(s.type)
+  const exList = noGym && hasNoGymOption ? NO_GYM_EXERCISES[s.type] : EXERCISES[s.type]
 
   return (
     <div>
@@ -209,7 +215,46 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
         </div>
       )}
 
-      <span className={`chip ${s.type}`}>{s.type.replace('_', ' ').toUpperCase()}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span className={`chip ${s.type}`}>{s.type.replace('_', ' ').toUpperCase()}</span>
+        {hasNoGymOption && (
+          <button
+            onClick={() => setNoGym(g => !g)}
+            style={{
+              background: noGym ? 'rgba(61,158,114,.12)' : 'rgba(255,255,255,.03)',
+              border: `1px solid ${noGym ? 'var(--green-dim)' : 'var(--border-hi)'}`,
+              color: noGym ? 'var(--green)' : 'var(--text-muted)',
+              fontFamily: 'var(--font-m)',
+              fontSize: 9,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase',
+              padding: '3px 10px',
+              cursor: 'pointer',
+              transition: 'all .2s',
+            }}
+          >
+            {noGym ? '✓ No Gym Mode' : 'No Gym Today'}
+          </button>
+        )}
+      </div>
+
+      {noGym && hasNoGymOption && (
+        <div style={{
+          background: 'rgba(61,158,114,.06)',
+          border: '1px solid var(--green-dim)',
+          borderLeft: '3px solid var(--green)',
+          padding: '10px 12px',
+          marginBottom: 10,
+          fontFamily: 'var(--font-m)',
+          fontSize: 12,
+          color: 'var(--green)',
+          lineHeight: 1.5,
+        }}>
+          Home workout — bodyweight equivalent of {SN[s.type]}.
+          Same training stimulus, no equipment needed.
+          Completing this still counts as today's session.
+        </div>
+      )}
 
       {(s.type === 'rest' || s.type === 'deload') && (
         <>
@@ -302,7 +347,7 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
           <div className="notes-box">
             Progressive overload: when you hit the top of the rep range across all sets, increase weight next session. Bicep curls + hammer curls done at home as accessory.
           </div>
-          <LogForm exList={exList} planDayNum={d.dayNum} state={state} onSave={actions.saveLog} />
+          <LogForm exList={exList} planDayNum={d.dayNum} state={state} noGym={noGym} onSave={actions.saveLog} />
         </>
       )}
 
