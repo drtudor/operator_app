@@ -1,3 +1,66 @@
+export const SKIP_WORKOUTS = {
+  lss: {
+    name: 'Skip Rope — Steady State',
+    intensityNote: 'MODERATE — same HR zone as LSS',
+    blocks: [
+      { label: 'Warm-up',   detail: '5 min easy skip, comfortable pace' },
+      { label: 'Main set',  detail: '10 min steady skip → 2 min walk rest', reps: 'repeat to match run duration' },
+      { label: 'Cool-down', detail: '5 min easy skip or walk' },
+    ],
+    notes: 'Target 120–150 BPM — same as LSS running. If you can\'t sustain 10 min continuous, shorten skip blocks and rest more. A weighted rope increases intensity without changing duration.',
+  },
+  tempo: {
+    name: 'Skip Rope — Tempo Effort',
+    intensityNote: 'HIGH — tempo equivalent',
+    blocks: [
+      { label: 'Warm-up',    detail: '5 min easy skip' },
+      { label: 'Tempo sets', detail: '5 min hard skip (7/10 effort) → 90s walk', reps: '× 4–6 sets' },
+      { label: 'Cool-down',  detail: '5 min easy skip' },
+    ],
+    notes: 'Tempo effort: you can say single words but not full sentences. 30–40 min total. Keep pace consistent across all sets — don\'t go out too hard.',
+  },
+  hill: {
+    name: 'Skip Rope — Hill Effort',
+    intensityNote: 'HIGH — hill training equivalent',
+    blocks: [
+      { label: 'Warm-up',   detail: '5 min easy skip' },
+      { label: 'Hard sets', detail: '3 min high-knee skip or double-unders → 2 min walk', reps: '× 8–12 sets' },
+      { label: 'Cool-down', detail: '5 min easy' },
+    ],
+    notes: 'High-knee skipping mimics the quad and hip drive of uphill running. Use a weighted vest if available for extra load. 40–60 min total. Expect legs to burn.',
+  },
+  '800s': {
+    name: 'Skip Rope — Speed Reps',
+    intensityNote: 'MAX — 800m repeat equivalent',
+    blocks: [
+      { label: 'Warm-up',    detail: '5 min easy skip' },
+      { label: 'Speed reps', detail: '3 min all-out skip (9/10) → 3–4 min full walk recovery', reps: '× same reps as planned' },
+      { label: 'Cool-down',  detail: '5 min easy' },
+    ],
+    notes: 'Each 3-min hard set approximates an 800m effort. Full recovery between reps — this is speed work, not fitness work. If you can\'t hit the same intensity on the last rep as the first, you\'re not recovering enough.',
+  },
+  long: {
+    name: 'Skip Rope — Long Session',
+    intensityNote: 'MODERATE — long run equivalent',
+    blocks: [
+      { label: 'Warm-up',   detail: '5 min easy skip' },
+      { label: 'Main set',  detail: '12 min steady skip → 3 min walk', reps: '× 6–8 rounds' },
+      { label: 'Cool-down', detail: '5 min easy' },
+    ],
+    notes: 'Target 75–90 min total. This is mentally tough — that\'s the point. Stay at a pace you can genuinely sustain. Use a rope counter app if available. Stay hydrated.',
+  },
+  fartlek: {
+    name: 'Skip Rope — Fartlek',
+    intensityNote: 'VARIABLE — fartlek equivalent',
+    blocks: [
+      { label: 'Warm-up',  detail: '5 min easy skip' },
+      { label: 'Fartlek',  detail: 'Alternate freely: 1–3 min hard → 1–2 min easy skip', reps: '40–50 min total' },
+      { label: 'Cool-down', detail: '5 min easy' },
+    ],
+    notes: 'No structure — go by feel. Pick up the pace when you feel good, back off when you don\'t. Total 50–60 min. Mirrors the spontaneity of fartlek running.',
+  },
+}
+
 export const NO_GYM_EXERCISES = {
   upper: [
     { name: 'Push Ups', sets: 4, reps: 'Max', rest: '90s', note: 'Full range — chest to floor' },

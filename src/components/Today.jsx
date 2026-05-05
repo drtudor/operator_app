@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
-  PLAN, EXERCISES, NO_GYM_EXERCISES, SN, RTN, PN,
+  PLAN, EXERCISES, NO_GYM_EXERCISES, SKIP_WORKOUTS, SN, RTN, PN,
   getTodayPlanDay, isTodayMissed, isCompleted, todayISO,
   getLastLog, getProgression, fmtWt, fmtTime, parseTime, parseRestSeconds,
 } from '../data/plan'
@@ -231,7 +231,7 @@ function LogForm({ exList, planDayNum, state, noGym, done, onSave, onComplete })
 }
 
 // ── Run session log form ──────────────────────────────────────────────────────
-function LogRunForm({ planDayNum, session, state, done, onSave, onComplete }) {
+function LogRunForm({ planDayNum, session, state, done, noRun, onSave, onComplete }) {
   const [show, setShow] = useState(false)
   const [saved, setSaved] = useState(false)
   const [distance, setDistance] = useState(session.distance ? String(session.distance) : '')
@@ -249,7 +249,8 @@ function LogRunForm({ planDayNum, session, state, done, onSave, onComplete }) {
 
   const handleSave = () => {
     if (!timeSeconds && !dist) return
-    onSave(planDayNum, distance, timeSeconds, effort, notes, rating)
+    const fullNotes = noRun ? `[Skip rope]${notes ? ' — ' + notes : ''}` : notes
+    onSave(planDayNum, distance, timeSeconds, effort, fullNotes, rating)
     setTime('')
     setEffort('')
     setNotes('')
@@ -395,7 +396,7 @@ function LogRunForm({ planDayNum, session, state, done, onSave, onComplete }) {
         </div>
       )}
       <button className="btn sec" onClick={() => setShow(s => !s)}>
-        {show ? 'HIDE RUN LOG' : 'LOG THIS RUN'}
+        {show ? 'HIDE LOG' : noRun ? 'LOG SKIP SESSION' : 'LOG THIS RUN'}
       </button>
     </>
   )
@@ -503,6 +504,7 @@ function StravaLabel({ label }) {
 // ── Main Today component ──────────────────────────────────────────────────────
 export default function Today({ state, actions, viewDay, onViewDay, onComplete }) {
   const [noGym, setNoGym] = useState(false)
+  const [noRun, setNoRun] = useState(false)
   const [showMissModal, setShowMissModal] = useState(false)
   const [ticked, setTicked] = useState(() => new Set())
   const timer = useRestTimer()
@@ -510,8 +512,8 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
   const planDay = viewDay || getTodayPlanDay(state)
   const d = PLAN[planDay - 1]
 
-  // Reset ticks when navigating to a different day
-  useEffect(() => { setTicked(new Set()) }, [planDay])
+  // Reset toggles and ticks when navigating to a different day
+  useEffect(() => { setTicked(new Set()); setNoGym(false); setNoRun(false) }, [planDay])
 
   if (!d) return null
 
@@ -590,6 +592,25 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
             {noGym ? '✓ No Gym Mode' : 'No Gym Today'}
           </button>
         )}
+        {s.type === 'run' && (
+          <button
+            onClick={() => setNoRun(r => !r)}
+            style={{
+              background: noRun ? 'rgba(61,158,114,.12)' : 'rgba(255,255,255,.03)',
+              border: `1px solid ${noRun ? 'var(--green-dim)' : 'var(--border-hi)'}`,
+              color: noRun ? 'var(--green)' : 'var(--text-muted)',
+              fontFamily: 'var(--font-m)',
+              fontSize: 9,
+              letterSpacing: '.1em',
+              textTransform: 'uppercase',
+              padding: '3px 10px',
+              cursor: 'pointer',
+              transition: 'all .2s',
+            }}
+          >
+            {noRun ? '✓ Skip Rope Mode' : 'Can\'t Run Today'}
+          </button>
+        )}
       </div>
 
       {noGym && hasNoGymOption && (
@@ -624,10 +645,34 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
       {(s.type === 'run' || s.type === 'ruck') && (
         <>
           <div style={{ fontSize: 20, fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
-            {s.type === 'ruck' ? `Ruck March — ${s.distance || '?'} Miles` : (RTN[s.runType] || 'Run')}
+            {s.type === 'ruck'
+              ? `Ruck March — ${s.distance || '?'} Miles`
+              : noRun
+                ? (SKIP_WORKOUTS[s.runType] || SKIP_WORKOUTS.lss).name
+                : (RTN[s.runType] || 'Run')}
           </div>
+
+          {/* Skip rope alternative banner */}
+          {noRun && s.type === 'run' && (
+            <div style={{
+              background: 'rgba(61,158,114,.06)',
+              border: '1px solid var(--green-dim)',
+              borderLeft: '3px solid var(--green)',
+              padding: '10px 12px',
+              marginBottom: 10,
+              fontFamily: 'var(--font-m)',
+              fontSize: 12,
+              color: 'var(--green)',
+              lineHeight: 1.5,
+            }}>
+              Skip rope alternative — same cardiovascular stimulus, no running needed.
+              Completing this still counts as today's session.
+            </div>
+          )}
+
+          {/* Run details card — original or skip workout */}
           <div className="card">
-            {s.type === 'run' && (
+            {s.type === 'run' && !noRun && (
               <>
                 <div className="run-row">
                   <span style={{ color: 'var(--text-dim)' }}>Type</span>
@@ -665,6 +710,57 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
                 )}
               </>
             )}
+
+            {s.type === 'run' && noRun && (() => {
+              const sw = SKIP_WORKOUTS[s.runType] || SKIP_WORKOUTS.lss
+              return (
+                <>
+                  <div style={{
+                    display: 'inline-block',
+                    fontFamily: 'var(--font-m)',
+                    fontSize: 8,
+                    letterSpacing: '.08em',
+                    color: 'var(--green)',
+                    border: '1px solid var(--green-dim)',
+                    padding: '2px 6px',
+                    marginBottom: 10,
+                  }}>
+                    {sw.intensityNote}
+                  </div>
+                  {sw.blocks.map((block, i) => (
+                    <div key={i} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      padding: '7px 0',
+                      borderBottom: i < sw.blocks.length - 1 ? '1px solid var(--border)' : 'none',
+                      gap: 12,
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--font-m)',
+                        fontSize: 10,
+                        color: 'var(--text-muted)',
+                        flexShrink: 0,
+                        width: 68,
+                      }}>
+                        {block.label}
+                      </span>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--text-dim)' }}>
+                          {block.detail}
+                        </div>
+                        {block.reps && (
+                          <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--green)', marginTop: 2 }}>
+                            {block.reps}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )
+            })()}
+
             {s.type === 'ruck' && (
               <>
                 <div className="run-row">
@@ -682,14 +778,24 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
               </>
             )}
           </div>
-          {s.stravaLabel && <StravaLabel label={s.stravaLabel} />}
-          {s.notes && <div className="notes-box">{s.notes}</div>}
+
+          {/* Skip workout notes */}
+          {s.type === 'run' && noRun && (
+            <div className="notes-box">
+              {(SKIP_WORKOUTS[s.runType] || SKIP_WORKOUTS.lss).notes}
+            </div>
+          )}
+
+          {s.stravaLabel && !noRun && <StravaLabel label={s.stravaLabel} />}
+          {s.notes && !noRun && <div className="notes-box">{s.notes}</div>}
+
           {s.type === 'run' && (
             <LogRunForm
               planDayNum={d.dayNum}
               session={s}
               state={state}
               done={done}
+              noRun={noRun}
               onSave={actions.logRunSession}
               onComplete={() => { actions.markComplete(); onComplete?.() }}
             />
