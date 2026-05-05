@@ -109,7 +109,7 @@ export default function App() {
       )}
 
       <div id="pg-dash" className={`page${activePage === 'dash' ? ' active' : ''}`}>
-        <Dashboard state={state} strava={strava} onViewSession={() => navigate('today')} />
+        <Dashboard state={state} strava={strava} onViewSession={(day) => navigate('today', day || null)} />
       </div>
 
       <div ref={todayRef} id="pg-today" className={`page${activePage === 'today' ? ' active' : ''}`}>

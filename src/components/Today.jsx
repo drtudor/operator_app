@@ -5,6 +5,7 @@ import {
   getLastLog, getProgression, fmtWt, fmtTime, parseTime, parseRestSeconds,
 } from '../data/plan'
 import RestTimer, { useRestTimer } from './RestTimer'
+import MissedSessionModal from './MissedSessionModal'
 
 const GYM_TYPES = ['upper', 'lower', 'se_upper', 'se_lower']
 
@@ -254,6 +255,7 @@ function StravaLabel({ label }) {
 // ── Main Today component ────────────────────────────────────────────────────
 export default function Today({ state, actions, viewDay, onViewDay, onComplete }) {
   const [noGym, setNoGym] = useState(false)
+  const [showMissModal, setShowMissModal] = useState(false)
   const timer = useRestTimer()
 
   const planDay = viewDay || getTodayPlanDay(state)
@@ -462,6 +464,14 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
         </>
       )}
 
+      {showMissModal && (
+        <MissedSessionModal
+          state={state}
+          actions={actions}
+          onClose={() => setShowMissModal(false)}
+        />
+      )}
+
       {isToday && !missed && (
         <>
           {done ? (
@@ -473,8 +483,8 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
               <button className="btn" onClick={() => { actions.markComplete(); onComplete?.() }}>
                 MARK SESSION COMPLETE
               </button>
-              <button className="btn miss" onClick={actions.missSession}>
-                ⚠ MISSED SESSION — PUSH BACK 1 DAY
+              <button className="btn miss" onClick={() => setShowMissModal(true)}>
+                ⚠ MISSED / CAN'T MAKE IT
               </button>
             </>
           ) : null}

@@ -5,6 +5,7 @@ import {
 } from '../data/plan'
 import StravaPanel from './StravaPanel'
 import WeeklySummary from './WeeklySummary'
+import UpcomingSessions from './UpcomingSessions'
 
 export default function Dashboard({ state, strava, onViewSession }) {
   const cd = getCurrentDay(state)
@@ -138,6 +139,8 @@ export default function Dashboard({ state, strava, onViewSession }) {
       )}
 
       <WeeklySummary state={state} />
+
+      <UpcomingSessions state={state} onViewSession={onViewSession} />
 
       <StravaPanel strava={strava} />
 

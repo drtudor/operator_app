@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { getTodayPlanDay, todayISO, fmtTime, parseTime, PLAN } from '../data/plan'
 import BadgesPanel from './BadgesPanel'
+import HistoryFeed from './HistoryFeed'
+import LiftProgress from './LiftProgress'
 
 function drawChart(canvas, weights) {
   if (!canvas) return
@@ -262,6 +264,16 @@ export default function Stats({ state, actions, isActive }) {
             UPDATE
           </button>
         </div>
+      </div>
+
+      <h2 style={{ marginTop: 14 }}>Session History</h2>
+      <div className="card">
+        <HistoryFeed state={state} />
+      </div>
+
+      <h2 style={{ marginTop: 14 }}>Lift Progress</h2>
+      <div className="card">
+        <LiftProgress state={state} />
       </div>
 
       <div style={{ height: 14 }} />

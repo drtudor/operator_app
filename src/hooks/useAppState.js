@@ -147,6 +147,12 @@ export function useAppState() {
       })
     },
 
+    skipSession() {
+      const pd = getTodayPlanDay(state)
+      const newCompleted = state.completed.includes(pd) ? state.completed : [...state.completed, pd]
+      saveState({ ...state, completed: newCompleted })
+    },
+
     logRuck(weight, distance, date, notes) {
       if (!weight) return
       saveState({
