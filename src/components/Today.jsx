@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   PLAN, EXERCISES, NO_GYM_EXERCISES, SN, RTN, PN,
-  getTodayPlanDay, isTodayMissed, isCompleted,
+  getTodayPlanDay, isTodayMissed, isCompleted, todayISO,
   getLastLog, getProgression, fmtWt, fmtTime, parseTime, parseRestSeconds,
 } from '../data/plan'
 import RestTimer, { useRestTimer } from './RestTimer'
@@ -9,8 +9,8 @@ import MissedSessionModal from './MissedSessionModal'
 
 const GYM_TYPES = ['upper', 'lower', 'se_upper', 'se_lower']
 
-// ── Exercise table with history + tappable rest cells ──────────────────────
-function ExerciseTableWithHistory({ exList, isDeload, state, onStartTimer }) {
+// ── Exercise table with tick-off + tappable rest cells ───────────────────────
+function ExerciseTableWithHistory({ exList, isDeload, state, ticked, onTick, onStartTimer }) {
   return (
     <div className="ex-list">
       <div className="ex-hdr">
@@ -24,19 +24,41 @@ function ExerciseTableWithHistory({ exList, isDeload, state, onStartTimer }) {
       {exList.map(ex => {
         const ll = getLastLog(state, ex.name)
         const prog = ll ? getProgression(ex, ll) : null
+        const done = ticked?.has(ex.name)
         return (
-          <div key={ex.name} className="ex-row">
-            <div>
-              <div className="ex-name">{ex.name}</div>
-              {ex.note && <div className="ex-note">{ex.note}</div>}
-              {ll && <div className="ex-hist">Last: {fmtWt(ll)} × {ll.reps}r × {ll.sets}s</div>}
-              {prog && <div className="ex-prog" style={{ color: prog.color }}>→ {prog.msg}</div>}
+          <div key={ex.name} className="ex-row" style={{ opacity: done ? 0.5 : 1, transition: 'opacity .2s' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              {/* Tick checkbox */}
+              <div
+                onClick={() => onTick?.(ex.name)}
+                style={{
+                  width: 18,
+                  height: 18,
+                  border: `1px solid ${done ? 'var(--green)' : 'var(--border-hi)'}`,
+                  background: done ? 'var(--green)' : 'transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  marginTop: 2,
+                  transition: 'all .15s',
+                }}
+              >
+                {done && <span style={{ color: '#0a1218', fontSize: 11, lineHeight: 1 }}>✓</span>}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="ex-name" style={{ textDecoration: done ? 'line-through' : 'none' }}>{ex.name}</div>
+                {ex.note && <div className="ex-note">{ex.note}</div>}
+                {ll && <div className="ex-hist">Last: {fmtWt(ll)} × {ll.reps}r × {ll.sets}s</div>}
+                {prog && <div className="ex-prog" style={{ color: prog.color }}>→ {prog.msg}</div>}
+              </div>
             </div>
             <div className="ex-d">{isDeload ? Math.max(2, ex.sets - 1) : ex.sets}<span>sets</span></div>
             <div className="ex-d">{ex.reps}<span>reps</span></div>
             <div
               className="ex-d"
-              onClick={() => onStartTimer?.(parseRestSeconds(ex.rest))}
+              onClick={() => onStartTimer?.(parseRestSeconds(ex.rest), ex.name)}
               style={{ cursor: onStartTimer ? 'pointer' : 'default', color: onStartTimer ? 'var(--blue)' : undefined }}
               title={onStartTimer ? 'Tap to start rest timer' : undefined}
             >
@@ -88,9 +110,10 @@ function RatingPicker({ value, onChange }) {
   )
 }
 
-// ── Gym log form ────────────────────────────────────────────────────────────
-function LogForm({ exList, planDayNum, state, noGym, onSave }) {
+// ── Gym log form ─────────────────────────────────────────────────────────────
+function LogForm({ exList, planDayNum, state, noGym, done, onSave, onComplete }) {
   const [show, setShow] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [notes, setNotes] = useState('')
   const [rating, setRating] = useState(null)
   const [inputs, setInputs] = useState(() => {
@@ -122,6 +145,43 @@ function LogForm({ exList, planDayNum, state, noGym, onSave }) {
     onSave(planDayNum, exercises, fullNotes, rating)
     setRating(null)
     setShow(false)
+    setSaved(true)
+  }
+
+  if (saved) {
+    return (
+      <div style={{
+        background: 'rgba(61,158,114,.08)',
+        border: '1px solid var(--green-dim)',
+        borderLeft: '3px solid var(--green)',
+        padding: '10px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+      }}>
+        <span style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--green)' }}>
+          ✓ Session logged
+        </span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {!done && onComplete && (
+            <button
+              className="btn"
+              style={{ padding: '6px 12px', fontSize: 10 }}
+              onClick={() => { onComplete(); setSaved(false) }}
+            >
+              MARK COMPLETE →
+            </button>
+          )}
+          <button
+            onClick={() => setSaved(false)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontFamily: 'var(--font-m)', fontSize: 10, cursor: 'pointer' }}
+          >
+            log again
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -152,7 +212,7 @@ function LogForm({ exList, planDayNum, state, noGym, onSave }) {
             ))}
             <div style={{ marginTop: 10 }}>
               <div className="label" style={{ marginBottom: 4 }}>Session notes</div>
-              <textarea className="if" rows={2} placeholder="How did it feel? Any notes..."
+              <textarea className="if" rows={2} placeholder="Any notes..."
                 value={notes} onChange={e => setNotes(e.target.value)}
                 style={{ resize: 'none', fontFamily: 'var(--font-m)', fontSize: 13, lineHeight: 1.5 }} />
             </div>
@@ -170,9 +230,10 @@ function LogForm({ exList, planDayNum, state, noGym, onSave }) {
   )
 }
 
-// ── Run session log form ────────────────────────────────────────────────────
-function LogRunForm({ planDayNum, session, state, onSave }) {
+// ── Run session log form ──────────────────────────────────────────────────────
+function LogRunForm({ planDayNum, session, state, done, onSave, onComplete }) {
   const [show, setShow] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [distance, setDistance] = useState(session.distance ? String(session.distance) : '')
   const [time, setTime] = useState('')
   const [effort, setEffort] = useState('')
@@ -184,7 +245,7 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
   const pacePerMile = timeSeconds && dist ? Math.round(timeSeconds / dist) : null
   const pacePerKm = pacePerMile ? Math.round(pacePerMile / 1.60934) : null
 
-  const recentLogs = (state.runSessionLogs || []).slice(-4).reverse()
+  const recentLogs = (state.runSessionLogs || []).slice(-3).reverse()
 
   const handleSave = () => {
     if (!timeSeconds && !dist) return
@@ -194,10 +255,68 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
     setNotes('')
     setRating(null)
     setShow(false)
+    setSaved(true)
+  }
+
+  // Recent runs always visible, above the toggle
+  const recentSection = recentLogs.length > 0 && (
+    <div style={{ marginBottom: 8 }}>
+      <div className="label" style={{ marginBottom: 4 }}>Recent runs</div>
+      {recentLogs.map((r, i) => (
+        <div key={i} className="log-entry">
+          <span className="log-date">{r.date}</span>
+          <span style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--text-dim)' }}>
+            {r.distance ? `${r.distance}mi` : '—'}
+            {r.timeSeconds ? ` · ${fmtTime(r.timeSeconds)}` : ''}
+            {r.pace ? ` · ${fmtTime(r.pace)}/mi` : ''}
+            {r.effort ? ` · RPE ${r.effort}` : ''}
+            {r.rating ? ` · ${'★'.repeat(r.rating)}` : ''}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (saved) {
+    return (
+      <>
+        {recentSection}
+        <div style={{
+          background: 'rgba(61,158,114,.08)',
+          border: '1px solid var(--green-dim)',
+          borderLeft: '3px solid var(--green)',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+        }}>
+          <span style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--green)' }}>✓ Run logged</span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {!done && onComplete && (
+              <button
+                className="btn"
+                style={{ padding: '6px 12px', fontSize: 10 }}
+                onClick={() => { onComplete(); setSaved(false) }}
+              >
+                MARK COMPLETE →
+              </button>
+            )}
+            <button
+              onClick={() => setSaved(false)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontFamily: 'var(--font-m)', fontSize: 10, cursor: 'pointer' }}
+            >
+              log again
+            </button>
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
     <>
+      {recentSection}
       {show && (
         <div style={{ marginTop: 6 }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: 10 }}>
@@ -213,17 +332,6 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
                 <div className="label">Time (mm:ss)</div>
                 <input className="if" type="text" placeholder="45:00"
                   value={time} onChange={e => setTime(e.target.value)} />
-              </div>
-              <div className="ig">
-                <div className="label">Effort (RPE 1–10)</div>
-                <input className="if" type="number" min="1" max="10"
-                  value={effort} placeholder="7"
-                  onChange={e => setEffort(e.target.value)} />
-              </div>
-              <div className="ig">
-                <div className="label">Notes</div>
-                <input className="if" type="text" placeholder="How did it feel?"
-                  value={notes} onChange={e => setNotes(e.target.value)} />
               </div>
             </div>
 
@@ -248,22 +356,38 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
               </div>
             )}
 
-            {recentLogs.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
-                <div className="label" style={{ marginBottom: 4 }}>Recent runs</div>
-                {recentLogs.map((r, i) => (
-                  <div key={i} className="log-entry">
-                    <span className="log-date">{r.date}</span>
-                    <span style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--text-dim)' }}>
-                      {r.distance ? `${r.distance}mi` : '—'}
-                      {r.timeSeconds ? ` · ${fmtTime(r.timeSeconds)}` : ''}
-                      {r.pace ? ` · ${fmtTime(r.pace)}/mi` : ''}
-                      {r.effort ? ` · RPE ${r.effort}` : ''}
-                    </span>
-                  </div>
+            <div style={{ marginTop: 4, marginBottom: 8 }}>
+              <div className="label" style={{ marginBottom: 6 }}>RPE</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setEffort(effort === String(n) ? '' : String(n))}
+                    style={{
+                      padding: '7px 4px',
+                      background: effort === String(n) ? 'rgba(200,168,75,.15)' : 'var(--surface)',
+                      border: `1px solid ${effort === String(n) ? 'var(--amber)' : 'var(--border)'}`,
+                      color: effort === String(n) ? 'var(--amber)' : 'var(--text-muted)',
+                      fontFamily: 'var(--font-m)',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      transition: 'all .1s',
+                    }}
+                  >
+                    {n}
+                  </button>
                 ))}
               </div>
-            )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-m)', fontSize: 8, color: 'var(--text-muted)', marginTop: 3 }}>
+                <span>Easy</span><span>Moderate</span><span>Max</span>
+              </div>
+            </div>
+
+            <div className="ig">
+              <div className="label">Notes</div>
+              <input className="if" type="text" placeholder="How did it feel?"
+                value={notes} onChange={e => setNotes(e.target.value)} />
+            </div>
 
             <RatingPicker value={rating} onChange={setRating} />
             <button className="btn-log" style={{ width: '100%', marginTop: 10 }} onClick={handleSave}>SAVE RUN</button>
@@ -277,7 +401,86 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
   )
 }
 
-// ── Strava label copy button ─────────────────────────────────────────────────
+// ── Ruck log form ─────────────────────────────────────────────────────────────
+function LogRuckForm({ planDayNum, session, done, onSave, onComplete }) {
+  const [show, setShow] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [weight, setWeight] = useState('')
+  const [notes, setNotes] = useState('')
+
+  const handleSave = () => {
+    if (!weight) return
+    onSave(weight, session.distance || 0, todayISO(), notes)
+    setWeight('')
+    setNotes('')
+    setShow(false)
+    setSaved(true)
+  }
+
+  if (saved) {
+    return (
+      <div style={{
+        background: 'rgba(61,158,114,.08)',
+        border: '1px solid var(--green-dim)',
+        borderLeft: '3px solid var(--green)',
+        padding: '10px 14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 10,
+      }}>
+        <span style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--green)' }}>✓ Ruck logged</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {!done && onComplete && (
+            <button
+              className="btn"
+              style={{ padding: '6px 12px', fontSize: 10 }}
+              onClick={() => { onComplete(); setSaved(false) }}
+            >
+              MARK COMPLETE →
+            </button>
+          )}
+          <button
+            onClick={() => setSaved(false)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontFamily: 'var(--font-m)', fontSize: 10, cursor: 'pointer' }}
+          >
+            log again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      {show && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', padding: 10 }}>
+            <div className="label" style={{ marginBottom: 8 }}>Log this ruck</div>
+            <div className="input-grid">
+              <div className="ig">
+                <div className="label">Pack weight (kg)</div>
+                <input className="if" type="number" step="0.5" placeholder="20"
+                  value={weight} onChange={e => setWeight(e.target.value)} />
+              </div>
+              <div className="ig">
+                <div className="label">Notes</div>
+                <input className="if" type="text" placeholder="Terrain, how it felt..."
+                  value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
+            </div>
+            <button className="btn-log" style={{ width: '100%', marginTop: 8 }} onClick={handleSave}>SAVE RUCK</button>
+          </div>
+        </div>
+      )}
+      <button className="btn sec" onClick={() => setShow(s => !s)}>
+        {show ? 'HIDE RUCK LOG' : 'LOG THIS RUCK'}
+      </button>
+    </>
+  )
+}
+
+// ── Strava label copy button ──────────────────────────────────────────────────
 function StravaLabel({ label }) {
   const [copied, setCopied] = useState(false)
   const copy = () => {
@@ -297,14 +500,19 @@ function StravaLabel({ label }) {
   )
 }
 
-// ── Main Today component ────────────────────────────────────────────────────
+// ── Main Today component ──────────────────────────────────────────────────────
 export default function Today({ state, actions, viewDay, onViewDay, onComplete }) {
   const [noGym, setNoGym] = useState(false)
   const [showMissModal, setShowMissModal] = useState(false)
+  const [ticked, setTicked] = useState(() => new Set())
   const timer = useRestTimer()
 
   const planDay = viewDay || getTodayPlanDay(state)
   const d = PLAN[planDay - 1]
+
+  // Reset ticks when navigating to a different day
+  useEffect(() => { setTicked(new Set()) }, [planDay])
+
   if (!d) return null
 
   const s = d.session
@@ -313,6 +521,15 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
   const missed = isToday && isTodayMissed(state)
   const hasNoGymOption = GYM_TYPES.includes(s.type)
   const exList = noGym && hasNoGymOption ? NO_GYM_EXERCISES[s.type] : EXERCISES[s.type]
+  const allTicked = exList && exList.length > 0 && ticked.size >= exList.length
+
+  const handleTick = (name) => {
+    setTicked(prev => {
+      const next = new Set(prev)
+      next.has(name) ? next.delete(name) : next.add(name)
+      return next
+    })
+  }
 
   return (
     <div>
@@ -333,7 +550,6 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
         </div>
       )}
 
-      {/* Deload week banner */}
       {d.isDeload && (
         <div style={{
           background: 'rgba(200,168,75,.06)',
@@ -349,7 +565,7 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
           <div style={{ color: 'var(--amber)', fontWeight: 700, marginBottom: 4, letterSpacing: '.08em' }}>
             DELOAD WEEK
           </div>
-          This is a structured recovery week — not a rest week. Reduced volume lets your nervous system recover and consolidates the strength and fitness you've built. Skipping deloads leads to overtraining and stalled progress. Do the work, trust the process.
+          Structured recovery — not a rest week. Reduced volume lets your nervous system recover and consolidates what you've built. Do the work, trust the process.
         </div>
       )}
 
@@ -457,7 +673,7 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
                 </div>
                 <div className="run-row">
                   <span style={{ color: 'var(--text-dim)' }}>Weight</span>
-                  <span className="run-val">Progressive</span>
+                  <span className="run-val">{state.farmersCarryKg ? `${state.farmersCarryKg}kg pack` : 'Progressive'}</span>
                 </div>
                 <div className="run-row">
                   <span style={{ color: 'var(--text-dim)' }}>Terrain</span>
@@ -473,7 +689,18 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
               planDayNum={d.dayNum}
               session={s}
               state={state}
+              done={done}
               onSave={actions.logRunSession}
+              onComplete={() => { actions.markComplete(); onComplete?.() }}
+            />
+          )}
+          {s.type === 'ruck' && (
+            <LogRuckForm
+              planDayNum={d.dayNum}
+              session={s}
+              done={done}
+              onSave={actions.logRuck}
+              onComplete={() => { actions.markComplete(); onComplete?.() }}
             />
           )}
         </>
@@ -488,10 +715,17 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
           )}
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div className="label">Session Exercises</div>
+              <div className="label">
+                Session Exercises
+                {ticked.size > 0 && (
+                  <span style={{ color: 'var(--green)', marginLeft: 8 }}>
+                    {ticked.size}/{exList.length}
+                  </span>
+                )}
+              </div>
               {!timer.active && (
                 <div style={{ fontFamily: 'var(--font-m)', fontSize: 9, color: 'var(--blue)', letterSpacing: '.06em' }}>
-                  TAP REST TO START TIMER
+                  TAP REST TO TIMER
                 </div>
               )}
             </div>
@@ -499,13 +733,46 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
               exList={exList}
               isDeload={d.isDeload}
               state={state}
+              ticked={ticked}
+              onTick={handleTick}
               onStartTimer={timer.start}
             />
           </div>
-          <div className="notes-box">
-            Progressive overload: when you hit the top of the rep range across all sets, increase weight next session. Bicep curls + hammer curls done at home as accessory.
-          </div>
-          <LogForm exList={exList} planDayNum={d.dayNum} state={state} noGym={noGym} onSave={actions.saveLog} />
+
+          {allTicked && !done && (
+            <div style={{
+              background: 'rgba(61,158,114,.08)',
+              border: '1px solid var(--green-dim)',
+              borderLeft: '3px solid var(--green)',
+              padding: '10px 14px',
+              fontFamily: 'var(--font-m)',
+              fontSize: 11,
+              color: 'var(--green)',
+            }}>
+              All exercises done — log your weights then mark complete below.
+            </div>
+          )}
+
+          {(s.type === 'upper' || s.type === 'se_upper') && (
+            <div className="notes-box">
+              Progressive overload: when you hit the top of the rep range across all sets, increase weight next session.
+            </div>
+          )}
+          {(s.type === 'lower' || s.type === 'se_lower') && (
+            <div className="notes-box">
+              Progressive overload: add weight when you hit the top of the rep range on all sets. Prioritise depth and form on squats and deadlifts.
+            </div>
+          )}
+
+          <LogForm
+            exList={exList}
+            planDayNum={d.dayNum}
+            state={state}
+            noGym={noGym}
+            done={done}
+            onSave={actions.saveLog}
+            onComplete={() => { actions.markComplete(); onComplete?.() }}
+          />
         </>
       )}
 
@@ -528,9 +795,24 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
               <button className="btn" onClick={() => { actions.markComplete(); onComplete?.() }}>
                 MARK SESSION COMPLETE
               </button>
-              <button className="btn miss" onClick={() => setShowMissModal(true)}>
-                ⚠ MISSED / CAN'T MAKE IT
-              </button>
+              <div style={{ textAlign: 'center', marginTop: 6 }}>
+                <button
+                  onClick={() => setShowMissModal(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontFamily: 'var(--font-m)',
+                    fontSize: 10,
+                    letterSpacing: '.06em',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: '4px 8px',
+                  }}
+                >
+                  Can't make this session?
+                </button>
+              </div>
             </>
           ) : null}
         </>
@@ -542,7 +824,6 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
         </button>
       )}
 
-      {/* Spacer so content isn't hidden behind timer */}
       <div style={{ height: timer.active ? 90 : 10 }} />
     </div>
   )

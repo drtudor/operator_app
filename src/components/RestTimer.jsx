@@ -12,12 +12,14 @@ export function useRestTimer() {
   const [active, setActive] = useState(false)
   const [total, setTotal] = useState(90)
   const [remaining, setRemaining] = useState(90)
+  const [label, setLabel] = useState('')
   const intervalRef = useRef(null)
 
-  const start = useCallback((secs) => {
+  const start = useCallback((secs, exerciseLabel = '') => {
     clearInterval(intervalRef.current)
     setTotal(secs)
     setRemaining(secs)
+    setLabel(exerciseLabel)
     setActive(true)
   }, [])
 
@@ -42,11 +44,11 @@ export function useRestTimer() {
     return () => clearInterval(intervalRef.current)
   }, [active])
 
-  return { active, total, remaining, start, stop }
+  return { active, total, remaining, label, start, stop }
 }
 
 export default function RestTimer({ timer }) {
-  const { active, total, remaining, start, stop } = timer
+  const { active, total, remaining, label, start, stop } = timer
   if (!active) return null
 
   const progress = (total - remaining) / total
@@ -65,7 +67,10 @@ export default function RestTimer({ timer }) {
     }}>
       <div style={{ maxWidth: 540, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <div className="label" style={{ margin: 0, color: isLow ? 'var(--amber)' : 'var(--text-muted)' }}>REST</div>
+          <div>
+            <div className="label" style={{ margin: 0, color: isLow ? 'var(--amber)' : 'var(--text-muted)' }}>REST</div>
+            {label && <div style={{ fontFamily: 'var(--font-m)', fontSize: 8, color: 'var(--text-muted)', letterSpacing: '.04em', marginTop: 1 }}>{label}</div>}
+          </div>
           <div style={{ flex: 1 }}>
             <div className="prog-bar">
               <div
