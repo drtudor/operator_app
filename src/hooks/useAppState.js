@@ -11,6 +11,7 @@ const DFLT = {
   pbs: {},
   ruckLogs: [],
   runSessionLogs: [],
+  farmersCarryKg: 20,
   workoutHistory: [
     {
       date: '2026-05-03',
@@ -114,7 +115,7 @@ export function useAppState() {
       saveState({ ...state, startDate: date, skippedDays: 0, missedDates: [] })
     },
 
-    saveLog(planDayNum, exercises, notes) {
+    saveLog(planDayNum, exercises, notes, rating) {
       const d = PLAN[planDayNum - 1]
       if (!d) return
       const history = state.workoutHistory || []
@@ -122,12 +123,12 @@ export function useAppState() {
         ...state,
         workoutHistory: [
           ...history,
-          { date: todayISO(), planDay: planDayNum, type: d.session.type, exercises, notes: notes || '' },
+          { date: todayISO(), planDay: planDayNum, type: d.session.type, exercises, notes: notes || '', rating: rating || null },
         ],
       })
     },
 
-    logRunSession(planDayNum, distance, timeSeconds, effort, notes) {
+    logRunSession(planDayNum, distance, timeSeconds, effort, notes, rating) {
       const dist = parseFloat(distance)
       const pace = timeSeconds && dist ? Math.round(timeSeconds / dist) : null
       saveState({
@@ -142,9 +143,19 @@ export function useAppState() {
             pace,
             effort: effort ? parseInt(effort) : null,
             notes: notes || '',
+            rating: rating || null,
           },
         ],
       })
+    },
+
+    updateFarmersCarry(kg) {
+      if (!kg) return
+      saveState({ ...state, farmersCarryKg: parseFloat(kg) })
+    },
+
+    importData(data) {
+      saveState(Object.assign({}, DFLT, data))
     },
 
     skipSession() {

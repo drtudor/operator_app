@@ -3,6 +3,7 @@ import { getTodayPlanDay, todayISO, fmtTime, parseTime, PLAN } from '../data/pla
 import BadgesPanel from './BadgesPanel'
 import HistoryFeed from './HistoryFeed'
 import LiftProgress from './LiftProgress'
+import TrainingHeatmap from './TrainingHeatmap'
 
 function drawChart(canvas, weights) {
   if (!canvas) return
@@ -63,6 +64,7 @@ function drawChart(canvas, weights) {
 
 export default function Stats({ state, actions, isActive }) {
   const canvasRef = useRef(null)
+  const importRef = useRef(null)
   const [wtVal, setWtVal] = useState('')
   const [wtDate, setWtDate] = useState(todayISO())
   const [runDist, setRunDist] = useState('2k')
@@ -72,6 +74,7 @@ export default function Stats({ state, actions, isActive }) {
   const [ruckDist, setRuckDist] = useState('')
   const [ruckDate, setRuckDate] = useState(todayISO())
   const [ruckNotes, setRuckNotes] = useState('')
+  const [fcInput, setFcInput] = useState('')
 
   useEffect(() => {
     if (isActive) drawChart(canvasRef.current, state.weights)
@@ -99,6 +102,40 @@ export default function Stats({ state, actions, isActive }) {
 
   const handleUpdateStart = () => {
     actions.updateStart(startInput)
+  }
+
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `operator-backup-${todayISO()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result)
+        if (!data.startDate || !data.completed) { alert('Invalid backup file'); return }
+        if (confirm('This will overwrite all current data. Continue?')) {
+          actions.importData(data)
+          window.location.reload()
+        }
+      } catch { alert('Failed to read file') }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  const handleUpdateFc = () => {
+    if (!fcInput) return
+    actions.updateFarmersCarry(fcInput)
+    setFcInput('')
   }
 
   const handleLogRuck = () => {
@@ -224,18 +261,37 @@ export default function Stats({ state, actions, isActive }) {
       <div className="card">
         <div className="run-row">
           <span style={{ color: 'var(--text-dim)' }}>Current</span>
-          <span className="run-val">20kg / hand</span>
+          <span className="run-val">{state.farmersCarryKg || 20}kg / hand</span>
         </div>
         <div className="run-row">
-          <span style={{ color: 'var(--text-dim)' }}>BW Goal</span>
-          <span className="run-val">~48kg total / 200m</span>
+          <span style={{ color: 'var(--text-dim)' }}>Goal</span>
+          <span className="run-val">24kg / hand · 200m</span>
         </div>
         <div className="prog-bar" style={{ marginTop: 6 }}>
-          <div className="prog-fill" style={{ width: `${Math.round(40 / 48 * 100)}%` }} />
+          <div className="prog-fill" style={{ width: `${Math.min(100, Math.round((state.farmersCarryKg || 20) / 24 * 100))}%` }} />
         </div>
-        <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-          +2kg/hand per week
+        <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)', marginTop: 4, marginBottom: 10 }}>
+          {(state.farmersCarryKg || 20) >= 24 ? 'Goal reached!' : `${(24 - (state.farmersCarryKg || 20)).toFixed(1)}kg to go`}
         </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            className="if"
+            type="number"
+            step="0.5"
+            placeholder="New weight (kg/hand)"
+            value={fcInput}
+            onChange={e => setFcInput(e.target.value)}
+            style={{ flex: 1 }}
+          />
+          <button className="btn-log" style={{ width: 'auto', padding: '10px 14px', gridColumn: 'auto' }} onClick={handleUpdateFc}>
+            UPDATE
+          </button>
+        </div>
+      </div>
+
+      <h2 style={{ marginTop: 14 }}>Training Calendar</h2>
+      <div className="card">
+        <TrainingHeatmap state={state} />
       </div>
 
       <h2 style={{ marginTop: 14 }}>Plan Settings</h2>
@@ -263,6 +319,21 @@ export default function Stats({ state, actions, isActive }) {
           <button className="btn-log" style={{ width: 'auto', padding: '10px 14px', gridColumn: 'auto' }} onClick={handleUpdateStart}>
             UPDATE
           </button>
+        </div>
+        <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+          <div className="label" style={{ marginBottom: 8 }}>Data Backup</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn sec" style={{ flex: 1 }} onClick={handleExport}>
+              EXPORT JSON
+            </button>
+            <button className="btn sec" style={{ flex: 1 }} onClick={() => importRef.current.click()}>
+              IMPORT JSON
+            </button>
+            <input ref={importRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+          </div>
+          <div style={{ fontFamily: 'var(--font-m)', fontSize: 9, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+            Export saves all your data as a JSON file. Import restores from a previous export — this overwrites everything.
+          </div>
         </div>
       </div>
 

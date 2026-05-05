@@ -42,9 +42,18 @@ function GymEntry({ entry }) {
               </div>
             )
           })}
-          {entry.notes && (
-            <div style={{ marginTop: 6, fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-              {entry.notes}
+          {(entry.notes || entry.rating) && (
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {entry.rating && (
+                <span style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--amber)' }}>
+                  {'★'.repeat(entry.rating)}{'☆'.repeat(5 - entry.rating)}
+                </span>
+              )}
+              {entry.notes && (
+                <span style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  {entry.notes}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -66,10 +75,15 @@ function RunEntry({ entry }) {
             <span style={{ fontFamily: 'var(--font-m)', fontSize: 12, color: 'var(--text-dim)' }}>{fmtTime(entry.timeSeconds)}</span>
           )}
         </div>
-        <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)' }}>
-          {entry.pace ? `${fmtTime(entry.pace)}/mi` : ''}
-          {entry.effort ? ` · RPE ${entry.effort}` : ''}
-          {entry.notes ? ` · ${entry.notes}` : ''}
+        <div style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>
+            {entry.pace ? `${fmtTime(entry.pace)}/mi` : ''}
+            {entry.effort ? ` · RPE ${entry.effort}` : ''}
+            {entry.notes ? ` · ${entry.notes}` : ''}
+          </span>
+          {entry.rating && (
+            <span style={{ color: 'var(--amber)', fontSize: 10 }}>{'★'.repeat(entry.rating)}</span>
+          )}
         </div>
       </div>
       <span style={{ fontFamily: 'var(--font-m)', fontSize: 10, color: 'var(--text-muted)' }}>{entry.date}</span>
@@ -82,13 +96,13 @@ export default function HistoryFeed({ state }) {
 
   const gymEntries = (state.workoutHistory || []).map(h => ({
     kind: 'gym', date: h.date, sessionType: h.type,
-    planDay: h.planDay, exercises: h.exercises, notes: h.notes,
+    planDay: h.planDay, exercises: h.exercises, notes: h.notes, rating: h.rating,
   }))
 
   const runEntries = (state.runSessionLogs || []).map(r => ({
     kind: 'run', date: r.date, planDay: r.planDay,
     distance: r.distance, timeSeconds: r.timeSeconds,
-    pace: r.pace, effort: r.effort, notes: r.notes,
+    pace: r.pace, effort: r.effort, notes: r.notes, rating: r.rating,
   }))
 
   const all = [...gymEntries, ...runEntries].sort((a, b) => b.date.localeCompare(a.date))

@@ -49,10 +49,50 @@ function ExerciseTableWithHistory({ exList, isDeload, state, onStartTimer }) {
   )
 }
 
+// ── Session rating picker ────────────────────────────────────────────────────
+const RATINGS = [
+  { v: 1, label: 'Rough' },
+  { v: 2, label: 'Tough' },
+  { v: 3, label: 'Solid' },
+  { v: 4, label: 'Strong' },
+  { v: 5, label: 'Excellent' },
+]
+function RatingPicker({ value, onChange }) {
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className="label" style={{ marginBottom: 6 }}>Session feel</div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {RATINGS.map(r => (
+          <button
+            key={r.v}
+            onClick={() => onChange(value === r.v ? null : r.v)}
+            style={{
+              flex: 1,
+              padding: '6px 2px',
+              background: value === r.v ? 'rgba(200,168,75,.15)' : 'var(--surface)',
+              border: `1px solid ${value === r.v ? 'var(--amber)' : 'var(--border)'}`,
+              color: value === r.v ? 'var(--amber)' : 'var(--text-muted)',
+              fontFamily: 'var(--font-m)',
+              fontSize: 8,
+              letterSpacing: '.04em',
+              cursor: 'pointer',
+              lineHeight: 1.4,
+              textAlign: 'center',
+            }}
+          >
+            {'★'.repeat(r.v)}<br />{r.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Gym log form ────────────────────────────────────────────────────────────
 function LogForm({ exList, planDayNum, state, noGym, onSave }) {
   const [show, setShow] = useState(false)
   const [notes, setNotes] = useState('')
+  const [rating, setRating] = useState(null)
   const [inputs, setInputs] = useState(() => {
     const result = {}
     exList.forEach(ex => {
@@ -79,7 +119,8 @@ function LogForm({ exList, planDayNum, state, noGym, onSave }) {
       if (r && s) exercises[ex.name] = { weight: w || 0, reps: r, sets: s }
     })
     const fullNotes = noGym ? `[Home workout]${notes ? ' — ' + notes : ''}` : notes
-    onSave(planDayNum, exercises, fullNotes)
+    onSave(planDayNum, exercises, fullNotes, rating)
+    setRating(null)
     setShow(false)
   }
 
@@ -115,7 +156,8 @@ function LogForm({ exList, planDayNum, state, noGym, onSave }) {
                 value={notes} onChange={e => setNotes(e.target.value)}
                 style={{ resize: 'none', fontFamily: 'var(--font-m)', fontSize: 13, lineHeight: 1.5 }} />
             </div>
-            <button className="btn-log" style={{ width: '100%', marginTop: 8 }} onClick={handleSave}>
+            <RatingPicker value={rating} onChange={setRating} />
+            <button className="btn-log" style={{ width: '100%', marginTop: 10 }} onClick={handleSave}>
               SAVE SESSION
             </button>
           </div>
@@ -135,6 +177,7 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
   const [time, setTime] = useState('')
   const [effort, setEffort] = useState('')
   const [notes, setNotes] = useState('')
+  const [rating, setRating] = useState(null)
 
   const timeSeconds = parseTime(time)
   const dist = parseFloat(distance)
@@ -145,10 +188,11 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
 
   const handleSave = () => {
     if (!timeSeconds && !dist) return
-    onSave(planDayNum, distance, timeSeconds, effort, notes)
+    onSave(planDayNum, distance, timeSeconds, effort, notes, rating)
     setTime('')
     setEffort('')
     setNotes('')
+    setRating(null)
     setShow(false)
   }
 
@@ -221,7 +265,8 @@ function LogRunForm({ planDayNum, session, state, onSave }) {
               </div>
             )}
 
-            <button className="btn-log" style={{ width: '100%' }} onClick={handleSave}>SAVE RUN</button>
+            <RatingPicker value={rating} onChange={setRating} />
+            <button className="btn-log" style={{ width: '100%', marginTop: 10 }} onClick={handleSave}>SAVE RUN</button>
           </div>
         </div>
       )}
