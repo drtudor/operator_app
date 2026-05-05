@@ -15,7 +15,7 @@ export default function UpcomingSessions({ state, onViewSession }) {
   const todayPD = getTodayPlanDay(state)
   const upcoming = []
 
-  for (let i = todayPD; i < PLAN.length && upcoming.length < 5; i++) {
+  for (let i = todayPD - 1; i < PLAN.length && upcoming.length < 5; i++) {
     const d = PLAN[i]
     if (!d) break
     upcoming.push(d)
