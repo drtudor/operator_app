@@ -2,8 +2,6 @@
 
 A personal training tracker PWA built with React. Tracks a structured 168-day programme across three phases — Capacity, Velocity, and Outcome — covering gym sessions, running, and rucking.
 
-Live: **https://drtudor.github.io/operator_app**
-
 ---
 
 ## Features
