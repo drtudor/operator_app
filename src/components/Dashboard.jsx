@@ -1,7 +1,7 @@
 import {
   PLAN, MUSCLES, PN, SN, RTN,
   getCurrentDay, getTodayPlanDay, isCompleted, isTodayMissed,
-  getPhaseTotal, getPhaseStart, dayTypeLabel, calculateStreak,
+  getPhaseTotal, getPhaseStart, dayTypeLabel, calculateStreak, isDeloadWeek,
 } from '../data/plan'
 import StravaPanel from './StravaPanel'
 import WeeklySummary from './WeeklySummary'
@@ -32,6 +32,7 @@ export default function Dashboard({ state, strava, onViewSession }) {
   const capRuns = PLAN.filter(d => d.phase === 'capacity' && d.session.type === 'run')
   const crDone = capRuns.filter(d => isCompleted(state, d.dayNum)).length
   const streak = calculateStreak(state)
+  const deload = isDeloadWeek(state)
 
   const dateStr = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
   const missed = isTodayMissed(state)
@@ -118,6 +119,23 @@ export default function Dashboard({ state, strava, onViewSession }) {
           VIEW SESSION DETAILS →
         </button>
       </div>
+
+      {deload && (
+        <div style={{
+          background: 'rgba(200,168,75,.06)',
+          border: '1px solid var(--amber-dim)',
+          borderLeft: '3px solid var(--amber)',
+          padding: '12px 14px',
+          marginBottom: 10,
+        }}>
+          <div style={{ fontFamily: 'var(--font-c)', fontSize: 13, fontWeight: 700, letterSpacing: '.15em', color: 'var(--amber)', marginBottom: 6 }}>
+            DELOAD WEEK — WEEK {cd.phaseWeek}
+          </div>
+          <div style={{ fontFamily: 'var(--font-m)', fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.6 }}>
+            Volume and intensity are reduced this week — intentionally. Your body is consolidating the adaptations from the last training block. Resist the urge to add more. The gains happen here.
+          </div>
+        </div>
+      )}
 
       <WeeklySummary state={state} />
 

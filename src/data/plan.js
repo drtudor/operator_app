@@ -277,6 +277,16 @@ export function getInc(name) {
   return 1
 }
 
+export function parseRestSeconds(rest) {
+  if (!rest) return 60
+  if (rest.includes('min')) return parseInt(rest) * 60
+  return parseInt(rest)
+}
+
+export function isDeloadWeek(state) {
+  return getCurrentDay(state).isDeload || false
+}
+
 export function calculateStreak(state) {
   const todayDay = getTodayPlanDay(state)
   let streak = 0

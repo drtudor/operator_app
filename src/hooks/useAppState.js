@@ -10,6 +10,7 @@ const DFLT = {
   runs: [],
   pbs: {},
   ruckLogs: [],
+  runSessionLogs: [],
   workoutHistory: [
     {
       date: '2026-05-03',
@@ -122,6 +123,26 @@ export function useAppState() {
         workoutHistory: [
           ...history,
           { date: todayISO(), planDay: planDayNum, type: d.session.type, exercises, notes: notes || '' },
+        ],
+      })
+    },
+
+    logRunSession(planDayNum, distance, timeSeconds, effort, notes) {
+      const dist = parseFloat(distance)
+      const pace = timeSeconds && dist ? Math.round(timeSeconds / dist) : null
+      saveState({
+        ...state,
+        runSessionLogs: [
+          ...(state.runSessionLogs || []),
+          {
+            date: todayISO(),
+            planDay: planDayNum,
+            distance: dist || null,
+            timeSeconds: timeSeconds || null,
+            pace,
+            effort: effort ? parseInt(effort) : null,
+            notes: notes || '',
+          },
         ],
       })
     },
