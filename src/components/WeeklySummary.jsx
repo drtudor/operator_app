@@ -6,7 +6,7 @@ const TYPE_COLOR = {
   rest: 'var(--border-hi)', deload: 'var(--border-hi)',
 }
 
-const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export default function WeeklySummary({ state }) {
   const todayDay = getTodayPlanDay(state)
