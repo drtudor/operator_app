@@ -5,6 +5,7 @@ import Today from './components/Today'
 import Plan from './components/Plan'
 import Stats from './components/Stats'
 import Confetti from './components/Confetti'
+import RestTimer, { useRestTimer } from './components/RestTimer'
 import { useAppState } from './hooks/useAppState'
 import { useStrava } from './hooks/useStrava'
 import { calculateStreak } from './data/plan'
@@ -20,6 +21,7 @@ export default function App() {
   const [newBadges, setNewBadges] = useState([])
   const { state, actions } = useAppState()
   const strava = useStrava()
+  const timer = useRestTimer()
   const todayRef = useRef(null)
   const touchStartX = useRef(null)
   const touchStartY = useRef(null)
@@ -119,6 +121,7 @@ export default function App() {
           viewDay={viewDay}
           onViewDay={(day) => navigate('today', day)}
           onComplete={handleComplete}
+          timer={timer}
         />
       </div>
 
@@ -130,6 +133,7 @@ export default function App() {
         <Stats state={state} actions={actions} isActive={activePage === 'stats'} />
       </div>
 
+      <RestTimer timer={timer} />
       <Nav activePage={activePage} onNavigate={navigate} />
     </div>
   )

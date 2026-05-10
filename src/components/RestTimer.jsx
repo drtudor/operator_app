@@ -13,10 +13,12 @@ export function useRestTimer() {
   const [total, setTotal] = useState(90)
   const [remaining, setRemaining] = useState(90)
   const [label, setLabel] = useState('')
+  const endTimeRef = useRef(null)
   const intervalRef = useRef(null)
 
   const start = useCallback((secs, exerciseLabel = '') => {
     clearInterval(intervalRef.current)
+    endTimeRef.current = Date.now() + secs * 1000
     setTotal(secs)
     setRemaining(secs)
     setLabel(exerciseLabel)
@@ -25,22 +27,22 @@ export function useRestTimer() {
 
   const stop = useCallback(() => {
     clearInterval(intervalRef.current)
+    endTimeRef.current = null
     setActive(false)
   }, [])
 
   useEffect(() => {
     if (!active) return
-    intervalRef.current = setInterval(() => {
-      setRemaining(r => {
-        if (r <= 1) {
-          clearInterval(intervalRef.current)
-          setActive(false)
-          if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200])
-          return 0
-        }
-        return r - 1
-      })
-    }, 1000)
+    const tick = () => {
+      const r = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000))
+      setRemaining(r)
+      if (r <= 0) {
+        clearInterval(intervalRef.current)
+        setActive(false)
+        if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 200])
+      }
+    }
+    intervalRef.current = setInterval(tick, 500)
     return () => clearInterval(intervalRef.current)
   }, [active])
 

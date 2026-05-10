@@ -116,7 +116,7 @@ export default function Dashboard({ state, strava, onViewSession }) {
             {cd.session.distance} MILES
           </div>
         )}
-        <button className="btn sec" style={{ marginTop: 10 }} onClick={onViewSession}>
+        <button className="btn sec" style={{ marginTop: 10 }} onClick={() => onViewSession()}>
           VIEW SESSION DETAILS →
         </button>
       </div>

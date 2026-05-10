@@ -4,7 +4,6 @@ import {
   getTodayPlanDay, isTodayMissed, isCompleted, todayISO,
   getLastLog, getProgression, fmtWt, fmtTime, parseTime, parseRestSeconds,
 } from '../data/plan'
-import RestTimer, { useRestTimer } from './RestTimer'
 import MissedSessionModal from './MissedSessionModal'
 
 const GYM_TYPES = ['upper', 'lower', 'se_upper', 'se_lower']
@@ -502,12 +501,11 @@ function StravaLabel({ label }) {
 }
 
 // ── Main Today component ──────────────────────────────────────────────────────
-export default function Today({ state, actions, viewDay, onViewDay, onComplete }) {
+export default function Today({ state, actions, viewDay, onViewDay, onComplete, timer }) {
   const [noGym, setNoGym] = useState(false)
   const [noRun, setNoRun] = useState(false)
   const [showMissModal, setShowMissModal] = useState(false)
   const [ticked, setTicked] = useState(() => new Set())
-  const timer = useRestTimer()
 
   const planDay = viewDay || getTodayPlanDay(state)
   const d = PLAN[planDay - 1]
@@ -535,9 +533,6 @@ export default function Today({ state, actions, viewDay, onViewDay, onComplete }
 
   return (
     <div>
-      {/* Floating rest timer */}
-      <RestTimer timer={timer} />
-
       <div style={{ paddingTop: 8, marginBottom: 18 }}>
         <div className="phase-badge">{PN[d.phase]} — WEEK {d.phaseWeek}</div>
         <h1>{SN[s.type] || s.type}</h1>
